@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>  // Para função abs()
+#include <stdlib.h>
 #include "pico/stdlib.h"
 #include "hardware/adc.h"
 #include "bsp/board.h"
@@ -7,7 +7,7 @@
 #include "class/hid/hid.h"
 #include "class/hid/hid_device.h"
 
-// Definições dos pinos dos botões
+// Pinos dos botões
 const uint BUTTON_A_PIN = 5;  // Botão A no GPIO 5
 const uint BUTTON_B_PIN = 6;  // Botão B no GPIO 6
 
@@ -23,36 +23,39 @@ void setup_buttons() {
     gpio_pull_up(22);
 }
 
-// Variáveis do estado do joystick
-int16_t x_axis = 0;
-int16_t y_axis = 0;
-uint8_t buttons = 0;
+// Estado atual do controle
+int16_t x_axis = 0;      // Posição X do joystick
+int16_t y_axis = 0;      // Posição Y do joystick
+uint8_t buttons = 0;     // Estado dos botões
 
-// Estrutura do relatório HID
+// Estrutura para enviar dados do controle via USB
 typedef struct {
-    int16_t x;
-    int16_t y;
-    uint8_t buttons;
+    uint8_t buttons;     // Estado dos botões (3 bits)
+    int16_t x;          // Posição X do joystick
+    int16_t y;          // Posição Y do joystick
 } __attribute__((packed)) custom_gamepad_report_t;
 
-// Descritor HID para gamepad compatível com Xbox
+// Configuração do protocolo HID para o gamepad
 const uint8_t desc_hid_report[] = {
     0x05, 0x01,        
-    0x09, 0x05,        
+    0x09, 0x05,       
     0xA1, 0x01,        
-    0x15, 0x00,        
-    0x25, 0x01,        
-    0x35, 0x00,        
-    0x45, 0x01,        
     
     // Botões
     0x05, 0x09,        
     0x19, 0x01,        
-    0x29, 0x08,        
-    0x95, 0x08,        
+    0x29, 0x03,        
+    0x15, 0x00,        
+    0x25, 0x01,        
+    0x95, 0x03,        
     0x75, 0x01,        
     0x81, 0x02,        
-
+    
+    // Padding para alinhar byte
+    0x95, 0x01,        
+    0x75, 0x05,        
+    0x81, 0x03,        
+    
     // Eixos X e Y
     0x05, 0x01,        
     0x09, 0x30,        
@@ -86,49 +89,64 @@ void send_hid_report() {
     tud_hid_report(0, &report, sizeof(report));
 }
 
-// Função para leitura dos botões
+// Lê o estado atual dos botões
 void read_buttons() {
     buttons = 0;
-    if (gpio_get(BUTTON_A_PIN) == 0) buttons |= (1 << 0); // Mapeado para "Botão A"
-    if (gpio_get(BUTTON_B_PIN) == 0) buttons |= (1 << 1); // Mapeado para "Botão B"
-    if (gpio_get(22) == 0) buttons |= (1 << 2); // Mapeado para "Botão SW do Joystick"
+    
+    // Os botões usam pull-up (0 = pressionado, 1 = solto)
+    if (!gpio_get(BUTTON_A_PIN)) buttons |= 0x01;  // Botão A
+    if (!gpio_get(BUTTON_B_PIN)) buttons |= 0x02;  // Botão B
+    if (!gpio_get(22)) buttons |= 0x04;            // Botão do Joystick
 }
 
-// Função para leitura do joystick analógico com zona morta e calibração
+// Lê a posição do joystick analógico
 void read_joystick() {
-    const int DEADZONE = 3000; // Ajuste conforme necessário
+    const int DEADZONE = 2000;           // Zona morta para evitar drift
+    const int CENTER_VALUE = 2048;       // Valor central do ADC
+    const float SCALE_FACTOR = 16.0;     // Fator de escala para ajustar sensibilidade
     
-    adc_select_input(0);
+    // Leitura dos eixos X e Y
+    adc_select_input(1);  // Eixo X do GPIO 27
     uint16_t raw_x = adc_read();
-    adc_select_input(1);
+    
+    adc_select_input(0);  // Eixo Y do GPIO 26
     uint16_t raw_y = adc_read();
     
-    // Converte para intervalo -32768 a 32767
-    x_axis = ((int32_t)raw_x - 2048) * 16;
-    y_axis = ((int32_t)raw_y - 2048) * 16;
+    // Calcula deslocamento em relação ao centro
+    int32_t delta_x = (int32_t)raw_x - CENTER_VALUE;
+    int32_t delta_y = (int32_t)raw_y - CENTER_VALUE;
     
-    // Aplica zona morta
-    if (abs(x_axis) < DEADZONE) x_axis = 0;
-    if (abs(y_axis) < DEADZONE) y_axis = 0;
-
-    // Evita que o joystick seja tratado como botão
-    if (x_axis != 0 || y_axis != 0) {
-        // Ações específicas para movimento do joystick
+    delta_y = -delta_y;  // Inverte Y para direção correta
+    
+    // Aplica zona morta e escala
+    if (abs(delta_x) < DEADZONE) {
+        x_axis = 0;
+    } else {
+        x_axis = (int16_t)(delta_x * SCALE_FACTOR);
+    }
+    
+    if (abs(delta_y) < DEADZONE) {
+        y_axis = 0;
+    } else {
+        y_axis = (int16_t)(delta_y * SCALE_FACTOR);
     }
 }
 
+// Função principal
 int main() {
-    // Inicialização
+    // Inicializa hardware
     stdio_init_all();
     board_init();
     tusb_init();
     
+    // Configura ADC para joystick
     adc_init();
-    adc_gpio_init(26); // X do joystick
-    adc_gpio_init(27); // Y do joystick
+    adc_gpio_init(26); // Eixo X
+    adc_gpio_init(27); // Eixo Y
 
     setup_buttons();
 
+    // Loop principal
     while (1) {
         tud_task();
         read_joystick();
@@ -198,7 +216,7 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
 
     // String de exemplo
     char const* string_desc[] = {
-        (const char[]){0x09, 0x04}, 
+        (const char[]){0x09, 0x04}, // Idioma: Inglês (EUA)
         "Raspberry Foundation",
         "PI PICO W",
         "191008", // Serial
