@@ -37,33 +37,33 @@ typedef struct {
 
 // Descritor HID para gamepad compatível com Xbox
 const uint8_t desc_hid_report[] = {
-    0x05, 0x01,        // Usage Page (Generic Desktop)
-    0x09, 0x05,        // Usage (Gamepad)
-    0xA1, 0x01,        // Collection (Application)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x01,        //   Logical Maximum (1)
-    0x35, 0x00,        //   Physical Minimum (0)
-    0x45, 0x01,        //   Physical Maximum (1)
+    0x05, 0x01,        
+    0x09, 0x05,        
+    0xA1, 0x01,        
+    0x15, 0x00,        
+    0x25, 0x01,        
+    0x35, 0x00,        
+    0x45, 0x01,        
     
     // Botões
-    0x05, 0x09,        //   Usage Page (Button)
-    0x19, 0x01,        //   Usage Minimum (Button 1)
-    0x29, 0x08,        //   Usage Maximum (Button 8)
-    0x95, 0x08,        //   Report Count (8)
-    0x75, 0x01,        //   Report Size (1)
-    0x81, 0x02,        //   Input (Data,Var,Abs)
+    0x05, 0x09,        
+    0x19, 0x01,        
+    0x29, 0x08,        
+    0x95, 0x08,        
+    0x75, 0x01,        
+    0x81, 0x02,        
 
     // Eixos X e Y
-    0x05, 0x01,        //   Usage Page (Generic Desktop)
-    0x09, 0x30,        //   Usage (X)
-    0x09, 0x31,        //   Usage (Y)
-    0x16, 0x00, 0x80,  //   Logical Minimum (-32768)
-    0x26, 0xFF, 0x7F,  //   Logical Maximum (32767)
-    0x75, 0x10,        //   Report Size (16)
-    0x95, 0x02,        //   Report Count (2)
-    0x81, 0x02,        //   Input (Data,Var,Abs)
+    0x05, 0x01,        
+    0x09, 0x30,        
+    0x09, 0x31,        
+    0x16, 0x00, 0x80,  
+    0x26, 0xFF, 0x7F,  
+    0x75, 0x10,        
+    0x95, 0x02,        
+    0x81, 0x02,        
     
-    0xC0               // End Collection
+    0xC0               
 };
 
 // Descritor de dispositivo
@@ -198,7 +198,7 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
 
     // String de exemplo
     char const* string_desc[] = {
-        (const char[]){0x09, 0x04}, // Idioma: Inglês (EUA)
+        (const char[]){0x09, 0x04}, 
         "Raspberry Foundation",
         "PI PICO W",
         "191008", // Serial
