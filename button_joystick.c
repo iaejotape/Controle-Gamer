@@ -216,7 +216,7 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
 
     // String de exemplo
     char const* string_desc[] = {
-        (const char[]){0x09, 0x04}, // Idioma: Inglês (EUA)
+        (const char[]){0x09, 0x04},  
         "Raspberry Foundation",
         "PI PICO W",
         "191008", // Serial
