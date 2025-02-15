@@ -218,7 +218,7 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
     char const* string_desc[] = {
         (const char[]){0x09, 0x04},  
         "Raspberry Foundation",
-        "PI PICO W",
+        "PI PICO W de Jotape",
         "191008", // Serial
     };
 
